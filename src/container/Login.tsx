@@ -47,6 +47,9 @@ export const Login: React.FC = () => {
           <CircularButton onPress={onClickLogin} />
         </View>
       </View>
+      <View style={{ top: "30%", alignItems: "center" }}>
+        <Text>Powered by RejectX</Text>
+      </View>
     </View>
   );
 };

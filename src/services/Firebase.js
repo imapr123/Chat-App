@@ -1,6 +1,10 @@
 import firebase from "firebase";
+import { Alert } from "react-native";
 
 class Fire {
+  uid = "";
+  messageRef = null;
+
   constructor() {
     this.init();
     this.checkAuth();
@@ -9,59 +13,68 @@ class Fire {
   init = () => {
     if (!firebase.apps.length) {
       firebase.initializeApp({
-        // config file for firebase project;
+        // Api key here
       });
     }
   };
 
   checkAuth = () => {
     firebase.auth().onAuthStateChanged((user) => {
-      if (!user) {
-        firebase.auth().signInAnonymously();
+      if (user) {
+        this.setUid(user.uid);
+      } else {
+        firebase
+          .auth()
+          .signInAnonymously()
+          .catch((error) => {
+            Alert.alert(error.message);
+          });
       }
     });
   };
 
-  send = (messages) => {
-    messages.array.forEach((items) => {
-      const message = {
-        text: items.text,
-        timeStamp: firebase.database.ServerValue.TIMESTAMP,
-        user: items.user,
-      };
+  setUid(value) {
+    this.uid = value;
+  }
 
-      this.db.push(message);
-    });
-  };
+  getUid() {
+    return this.uid;
+  }
 
-  parse = (message) => {
-    const { user, text, timeStamp } = message;
-    const { key: _id } = message;
-    const createdAt = new Date(timeStamp);
-
-    return {
-      _id,
-      createdAt,
-      text,
-      user,
+  loadMessage = (callback) => {
+    this.messageRef = firebase.database().ref("messages");
+    this.messageRef.off();
+    const onRecieve = (data) => {
+      const message = data.val();
+      callback({
+        _id: data.key,
+        text: message.text,
+        timeStamp: new Date(message.timeStamp),
+        user: {
+          _id: message.user._id,
+          name: message.user.name,
+        },
+      });
     };
+    this.messageRef.limitToLast(20).on("child_added", onRecieve);
   };
 
-  get = (callback) => {
-    this.db.on("child_Added", (snapShot) => callback(this.parse(snapShot)));
+  send = (messages) => {
+    for (let i = 0; i < messages.length; i++) {
+      const message = {
+        text: messages[i].text,
+        timeStamp: firebase.database.ServerValue.TIMESTAMP,
+        user: messages[i].user,
+      };
+      this.messageRef.push(message);
+    }
   };
 
-  off() {
-    this.db.off();
-  }
-
-  get db() {
-    return firebase.database.ref("messages");
-  }
-
-  get uid() {
-    return (firebase.auth().currentUser || {}).uid;
-  }
+  closeChat = () => {
+    if (this.messageRef) {
+      this.messageRef.off();
+    }
+  };
 }
 
 export default new Fire();

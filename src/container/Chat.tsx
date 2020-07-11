@@ -33,37 +33,38 @@ export const Chat: React.FC = () => {
   };
 
   useEffect(() => {
-    Fire.get((message: any) => {
-      setMessages((previousChat) =>
-        GiftedChat.append(previousChat.messages, message)
-      );
+    Fire.loadMessage((message: any) => {
+      setMessages((previousChat) => {
+        return GiftedChat.append(previousChat, message);
+      });
     });
 
-    return () => Fire.off();
+    return () => Fire.closeChat();
   }, []);
 
   const onClickBack = () => {
     navigation.goBack();
   };
 
-  const chat = () => {
-    return <GiftedChat messages={messages} onSend={Fire.send} user={user()} />;
-  };
-
   return (
     <>
-      {Platform.OS === "android" ? (
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior="padding"
-          keyboardVerticalOffset={30}
-          enabled
-        >
-          {chat}
-        </KeyboardAvoidingView>
-      ) : (
-        <SafeAreaView style={{ flex: 1 }}>{chat}</SafeAreaView>
-      )}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+        }}
+      >
+        <BackButton onClick={onClickBack} />
+        <Text style={{ fontSize: 18 }}>Chat</Text>
+      </View>
+      <GiftedChat
+        messages={messages}
+        onSend={(message) => Fire.send(message)}
+        user={{
+          _id: Fire.getUid(),
+          name: name,
+        }}
+      />
     </>
   );
 };
